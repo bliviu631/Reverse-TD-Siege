@@ -49,17 +49,17 @@ function renderTwoPlayerHands(){
 }
 function cycle(deck,id){const i=deck.indexOf(id);if(i>=0)deck.push(deck.splice(i,1)[0])}
 function applyAction(a){if(!match||match.ended)return;if(a.type==='spawn'){const s=troopCards[a.card];if(!s||match.attackerSupply<s.cost)return;match.attackerSupply-=s.cost;match.units.push({type:a.card,hp:s.hp,maxHp:s.hp,d:0,slow:1,healTick:0,castleTick:0});cycle(troopDeck,a.card);if(match.role==='local2p')renderTwoPlayerHands();else if(match.role==='attacker')renderHand()}else if(a.type==='tower'){const s=towerCards[a.card];if(!s||match.defenderSupply<s.cost||match.towers.some(t=>t.spot===a.spot))return;match.defenderSupply-=s.cost;match.towers.push({type:a.card,hp:s.hp,maxHp:s.hp,spot:a.spot,cool:Math.random()*s.rate});cycle(towerDeck,a.card);match.selected=null;if(match.role==='local2p')renderTwoPlayerHands();else if(match.role==='defender')renderHand()}}
-function doAction(a){if(online){socket.emit('game-action',{room:roomCode,action:a});if(isHost)applyAction(a)}else applyAction(a)}
+function doAction(a){if(online){socket.emit('game-action',{room:roomCode,action:a})}else applyAction(a)}
 canvas.addEventListener('pointerdown',e=>{if(!match||match.ended)return;const role=match.role==='local2p'?'defender':match.role;if(role!=='defender'||!match.selected)return;const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*H/r.height;let best=-1,dist=55;spots.forEach((p,i)=>{const d=Math.hypot(x-p.x,y-p.y);if(d<dist&&!match.towers.some(t=>t.spot===i)){dist=d;best=i}});if(best<0)return toast('Choose an empty slot');doAction({type:'tower',card:match.selected,spot:best})});
-function update(dt){if(!match||match.ended||online&&!isHost)return;match.time-=dt;const regen=match.time<=60?1.30:.72;match.attackerSupply=Math.min(10,match.attackerSupply+regen*dt);match.defenderSupply=Math.min(10,match.defenderSupply+(regen*.94)*dt);for(const t of match.towers){const s=towerCards[t.type];if(s.income)match.defenderSupply=Math.min(10,match.defenderSupply+s.income*dt)}
+function update(dt){if(!match||match.ended||online)return;match.time-=dt;const regen=match.time<=60?1.30:.72;match.attackerSupply=Math.min(10,match.attackerSupply+regen*dt);match.defenderSupply=Math.min(10,match.defenderSupply+(regen*.94)*dt);for(const t of match.towers){const s=towerCards[t.type];if(s.income)match.defenderSupply=Math.min(10,match.defenderSupply+s.income*dt)}
  for(const u of match.units){const s=troopCards[u.type];u.slow=Math.min(1,u.slow+dt*.28);if(u.d<totalPath)u.d=Math.min(totalPath,u.d+s.speed*u.slow*dt);else{u.castleTick-=dt;if(u.castleTick<=0){u.castleTick=1;match.castleHp-=s.damage*(u.buff||1)}}if(u.type==='medic'){u.healTick-=dt;if(u.healTick<=0){u.healTick=1.15;const p=posOnPath(u.d);match.units.forEach(v=>{const q=posOnPath(v.d);if(v.hp>0&&Math.hypot(p.x-q.x,p.y-q.y)<80)v.hp=Math.min(v.maxHp,v.hp+s.heal)})}}}
  for(const u of match.units){u.buff=1;if(match.units.some(c=>c.type==='commander'&&Math.abs(c.d-u.d)<95))u.buff=1.18}
  for(const t of match.towers){const s=towerCards[t.type];t.cool-=dt;if(s.damage<=0||t.cool>0)continue;const p=spots[t.spot];let target=null,best=-1;for(const u of match.units){const q=posOnPath(u.d),d=Math.hypot(q.x-p.x,q.y-p.y);if(d<=s.range&&u.d>best){best=u.d;target=u}}if(target){t.cool=s.rate;const q=posOnPath(target.d);target.hp-=s.damage;if(s.slow)target.slow=Math.min(target.slow,s.slow);if(s.splash)match.units.forEach(u=>{const z=posOnPath(u.d);if(u!==target&&Math.hypot(z.x-q.x,z.y-q.y)<s.splash)u.hp-=s.damage*.42});match.shots.push({x:p.x,y:p.y,tx:q.x,ty:q.y,life:.12})}}
  match.units=match.units.filter(u=>u.hp>0);match.shots.forEach(s=>s.life-=dt);match.shots=match.shots.filter(s=>s.life>0);if(match.castleHp<=0)finish('attacker');else if(match.time<=0)finish('defender')}
-function finish(winner){if(!match||match.ended)return;match.ended=true;$('#resultTitle').textContent=(match.role===winner||match.role==='local2p')?'Victory!':'Defeat';$('#resultText').textContent=winner==='attacker'?'The castle has fallen.':'The fortress survived the siege.';$('#resultModal').classList.remove('hidden');if(online&&isHost)socket.emit('game-over',{room:roomCode,winner})}
+function finish(winner){if(!match||match.ended)return;match.ended=true;$('#resultTitle').textContent=(match.role===winner||match.role==='local2p')?'Victory!':'Defeat';$('#resultText').textContent=winner==='attacker'?'The castle has fallen.':'The fortress survived the siege.';$('#resultModal').classList.remove('hidden')}
 function draw(){if(!match)return;ctx.clearRect(0,0,W,H);ctx.fillStyle='#9bbc6a';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#4c3d2c';ctx.lineWidth=72;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(path[0].x,path[0].y);path.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));ctx.stroke();ctx.strokeStyle='#c9a86e';ctx.lineWidth=58;ctx.stroke();spots.forEach((p,i)=>{const occ=match.towers.some(t=>t.spot===i);ctx.beginPath();ctx.arc(p.x,p.y,27,0,Math.PI*2);ctx.fillStyle=!occ&&match.role==='defender'&&match.selected?'#fff3a4':'#d8c79c';ctx.fill();ctx.strokeStyle='#4c4334';ctx.lineWidth=3;ctx.stroke()});ctx.font='72px serif';ctx.fillText('🏰',1015,555);ctx.fillStyle='#231f20';ctx.fillRect(1000,465,125,16);ctx.fillStyle='#68b24b';ctx.fillRect(1003,468,119*Math.max(0,match.castleHp/600),10);ctx.textAlign='center';for(const t of match.towers){const p=spots[t.spot],s=towerCards[t.type];ctx.font='42px serif';ctx.fillText(s.icon,p.x,p.y+14)}for(const u of match.units){const p=posOnPath(u.d),s=troopCards[u.type];ctx.save();ctx.translate(p.x,p.y);ctx.scale(Math.cos(p.angle)<0?-1:1,1);ctx.font=`${30+s.size}px serif`;ctx.fillText(s.icon,0,10);ctx.restore();ctx.fillStyle='#222';ctx.fillRect(p.x-18,p.y-28,36,5);ctx.fillStyle='#5fc65a';ctx.fillRect(p.x-17,p.y-27,34*(u.hp/u.maxHp),3)}ctx.strokeStyle='#fff8d6';ctx.lineWidth=4;for(const s of match.shots){ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.tx,s.ty);ctx.stroke()}ctx.textAlign='start'}
 function sync(){if(!match)return;const sec=Math.max(0,Math.ceil(match.time));$('#timer').textContent=`${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;$('#castleHp').textContent=Math.max(0,Math.ceil(match.castleHp));if(match.role==='local2p'){$('#attackerResourceText').textContent=match.attackerSupply.toFixed(1)+' / 10';$('#defenderResourceText').textContent=match.defenderSupply.toFixed(1)+' / 10';$('#attackerResourceFill').style.width=match.attackerSupply*10+'%';$('#defenderResourceFill').style.width=match.defenderSupply*10+'%'}else{const val=match.role==='defender'?match.defenderSupply:match.attackerSupply;$('#resourceText').textContent=`${val.toFixed(1)} / 10`;$('#resourceFill').style.width=val*10+'%'}$('#attackerSupplyTop').textContent='Supply '+match.attackerSupply.toFixed(1)}
-function loop(now){const dt=Math.min(.04,(now-last)/1000);last=now;update(dt);if(online&&isHost&&match&&!match.ended){snapshotTimer-=dt;if(snapshotTimer<=0){snapshotTimer=.08;socket.emit('state',{room:roomCode,state:match})}}draw();sync();raf=requestAnimationFrame(loop)}
+function loop(now){const dt=Math.min(.04,(now-last)/1000);last=now;update(dt);draw();sync();raf=requestAnimationFrame(loop)}
 
 function ensureSocket(){
  if(socket)return true;
@@ -70,22 +70,22 @@ function ensureSocket(){
  socket=io({transports:['websocket','polling']});
  socket.on('connect',()=>{$('#roomStatus').textContent='Connected. Creating room…'});
  socket.on('connect_error',()=>{$('#roomStatus').textContent='Could not reach the game server. Check that the Render service is running.'});
- socket.on('room-created',d=>{roomCode=d.code;onlineRole='attacker';isHost=true;ready=false;openRoom(d.code)});
- socket.on('room-joined',d=>{roomCode=d.code;onlineRole=d.role;isHost=d.role==='attacker';ready=false;openRoom(d.code)});
+ socket.on('room-created',d=>{roomCode=d.code;onlineRole='attacker';isHost=false;ready=false;openRoom(d.code)});
+ socket.on('room-joined',d=>{roomCode=d.code;onlineRole=d.role;isHost=false;ready=false;openRoom(d.code)});
  socket.on('room-update',d=>{
   opponentReady=d.players.some(p=>p.role!==onlineRole&&p.ready);
   $('#roomStatus').textContent=`${d.players.length}/2 players · ${d.players.filter(p=>p.ready).length}/2 ready`;
-  if(d.started&&(!match||match.mode!=='online')){
-   $('#roomModal').classList.add('hidden');
-   startMatch(onlineRole,'online');
-  }
+  
  });
- socket.on('game-action',a=>{if(isHost)applyAction(a)});
+ socket.on('game-action',()=>{});
+ socket.on('match-start',()=>{
+  $('#roomModal').classList.add('hidden');
+  if(!match||match.mode!=='online')startMatch(onlineRole,'online');
+ });
  socket.on('state',state=>{
-  if(isHost)return;
   const localRole=onlineRole;
   const wasActive=$('#matchView').classList.contains('active');
-  match={...state,role:localRole,mode:'online'};
+  match={...state,role:localRole,mode:'online',selected:match?.selected||null};
   online=true;
   if(!wasActive){
    showView('matchView');
@@ -95,10 +95,7 @@ function ensureSocket(){
    $('#soloControls').classList.remove('hidden');
    $('#twoPlayerControls').classList.add('hidden');
    $('#swapRole').classList.add('hidden');
-   renderHand();
-   last=performance.now();
-   cancelAnimationFrame(raf);
-   raf=requestAnimationFrame(loop);
+   renderHand();last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
   }
  });
  socket.on('game-over',d=>{if(match&&!match.ended)finish(d.winner)});
@@ -128,7 +125,7 @@ $('#closeRoom').onclick=()=>{if(socket&&roomCode)socket.emit('leave-room',{room:
 $('#localBtn').onclick=()=>$('#choiceModal').classList.remove('hidden');$('#closeChoice').onclick=()=>$('#choiceModal').classList.add('hidden');$('#startLocalTwoPlayer').onclick=()=>{$('#choiceModal').classList.add('hidden');startMatch('local2p')};
 $('#leaveMatch').onclick=()=>{cancelAnimationFrame(raf);if(online&&socket)socket.emit('leave-room',{room:roomCode});match=null;online=false;showView('battleView')};
 $('#swapRole').onclick=()=>{};
-$('#rematchBtn').onclick=()=>{$('#resultModal').classList.add('hidden');if(online){ready=false;socket.emit('ready',{room:roomCode,ready:true})}else startMatch(match.role)};
+$('#rematchBtn').onclick=()=>{$('#resultModal').classList.add('hidden');if(online){socket.emit('request-rematch',{room:roomCode})}else startMatch(match.role)};
 $('#resultHome').onclick=()=>{$('#resultModal').classList.add('hidden');cancelAnimationFrame(raf);match=null;showView('battleView')};
 const incoming=new URLSearchParams(location.search).get('room');if(incoming){$('#roomModal').classList.remove('hidden');$('#roomCode').textContent=incoming.toUpperCase();$('#roomUrl').textContent=location.href;$('#roomStatus').textContent='Joining private room…';if(ensureSocket())socket.emit('join-room',{code:incoming.toUpperCase()})}
 renderHomeDeck();renderDeck();

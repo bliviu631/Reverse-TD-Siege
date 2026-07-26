@@ -1,14 +1,17 @@
-# Reverse TD: Siege — Online 1v1
+# Reverse TD: Siege — server-authoritative online 1v1
 
-This build keeps the supplied Clash Royale-style interface and adds private online rooms using Node.js and Socket.IO.
+This version keeps the selected Clash Royale-style interface and local two-player mode, while moving online match simulation to the Node.js server.
 
-## Files
+## What changed
 
-- `index.html` — interface and battlefield
-- `client.js` — decks, balanced combat, rooms, synchronization
-- `server.js` — room and realtime server
-- `package.json` — Node dependencies
-- `render.yaml` — Render deployment configuration
+- Private invitation rooms for exactly two players
+- Room creator is Attacker; invited player is Defender
+- Both players ready before the match begins
+- Server controls timer, supply, troop movement, tower targeting, damage, healing, buffs, castle health, and victory
+- Clients send only legal actions and render server snapshots
+- Server validates card ownership by role, supply cost, tower slot, and room membership
+- Rematch and disconnect handling
+- Balanced troop and tower values
 
 ## Run locally
 
@@ -17,23 +20,14 @@ npm install
 npm start
 ```
 
-Open `http://localhost:3000` in two browser windows. Do not open `index.html` directly, because direct files cannot run the Socket.IO server.
+Open `http://localhost:3000` in two browser windows. Create a room in one and open the generated invitation in the other.
 
 ## Deploy on Render
 
-1. Upload all files to the root of a GitHub repository.
-2. In Render, create a Web Service from the repository.
-3. Build command: `npm install`
-4. Start command: `npm start`
-5. Health check: `/health`
-6. Open the generated Render URL.
+Create a Render Web Service from this GitHub repository. Render can read `render.yaml` automatically, or use:
 
-## Play by invitation
+- Build command: `npm install`
+- Start command: `npm start`
+- Health path: `/health`
 
-1. Player 1 opens the Render URL and selects **Play Against a Friend**.
-2. Player 1 copies the generated invitation link.
-3. Player 2 opens the link on another phone.
-4. Both players press **Ready**.
-5. Player 1 controls troops as Attacker. Player 2 places towers as Defender.
-
-GitHub Pages cannot host this multiplayer build because it cannot execute `server.js`.
+Use the Render URL for multiplayer. GitHub Pages cannot execute `server.js`.
