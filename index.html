@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Reverse TD: Siege</title>
+<style>
+:root{
+  --ink:#18202b;--paper:#f4ead1;--panel:#fff8e7;--edge:#2b3039;
+  --red:#c84d42;--blue:#3478b9;--gold:#f2c14e;--green:#72ad55;
+  --purple:#7857b8;--muted:#736f68;--shadow:#11182755;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,Arial,sans-serif;background:#121722;color:var(--ink)}
+button{font:inherit}
+.hidden{display:none!important}
+.screen{min-height:100vh}
+#loading{
+  display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#33445f,#10151f 65%);
+  color:white;text-align:center;padding:24px
+}
+.logo{font-weight:1000;letter-spacing:1px;font-size:clamp(34px,7vw,68px);text-shadow:0 5px 0 #0007}
+.logo small{display:block;color:#f2c14e;font-size:.34em;letter-spacing:5px;margin-top:8px}
+.loader{width:min(440px,82vw);height:22px;border:3px solid #0a0d13;border-radius:999px;background:#293140;overflow:hidden;margin:30px auto 10px;box-shadow:0 5px 0 #0007}
+.loader>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#f2c14e,#fff0a5);animation:load 1.35s ease forwards}
+@keyframes load{to{width:100%}}
+#app{width:min(1200px,100%);margin:auto;background:var(--paper);min-height:100vh;box-shadow:0 0 80px #0008}
+.topbar{height:72px;background:linear-gradient(#fff8e9,#e8d7af);border-bottom:4px solid var(--edge);display:flex;align-items:center;justify-content:space-between;padding:8px 14px;gap:12px;position:sticky;top:0;z-index:40}
+.profile{display:flex;align-items:center;gap:9px;min-width:0}
+.avatar{width:46px;height:46px;border:3px solid var(--edge);border-radius:14px;background:#8fb0d0;display:grid;place-items:center;font-size:26px;box-shadow:0 3px 0 var(--edge)}
+.profile strong{display:block;white-space:nowrap}
+.profile small{font-weight:800;color:#75500a}
+.currency{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pill{border:2px solid var(--edge);border-radius:999px;padding:7px 11px;background:#fffaf0;font-weight:900;box-shadow:0 3px 0 var(--edge);white-space:nowrap}
+main{padding:16px 16px 94px}
+.view{display:none}.view.active{display:block}
+.home-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(270px,.6fr);gap:16px}
+.arena-card,.panel{border:4px solid var(--edge);border-radius:22px;background:var(--panel);box-shadow:0 8px 0 #2225;overflow:hidden}
+.arena-art{min-height:390px;position:relative;background:
+ radial-gradient(circle at 16% 15%,#d9f0ff 0 9%,transparent 10%),
+ linear-gradient(#91c7e5 0 38%,#9fc66c 38%);
+display:grid;place-items:center;padding:22px}
+.hills{position:absolute;inset:auto 0 0;height:48%;background:
+ radial-gradient(ellipse at 20% 100%,#668d49 0 45%,transparent 46%),
+ radial-gradient(ellipse at 80% 100%,#769c53 0 50%,transparent 51%)}
+.castle-mark{position:relative;z-index:2;font-size:110px;filter:drop-shadow(0 8px 0 #0004)}
+.arena-title{position:absolute;top:18px;left:18px;z-index:3;background:#fff8e8;border:3px solid var(--edge);border-radius:14px;padding:9px 13px;font-weight:1000;box-shadow:0 4px 0 var(--edge)}
+.home-actions{padding:16px;display:grid;gap:12px;background:#e8d7af;border-top:4px solid var(--edge)}
+.big-btn,.secondary-btn,.small-btn{
+ border:3px solid var(--edge);border-radius:14px;font-weight:1000;cursor:pointer;
+ box-shadow:0 5px 0 var(--edge);transition:.08s transform,.08s box-shadow
+}
+.big-btn:active,.secondary-btn:active,.small-btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--edge)}
+.big-btn{padding:16px;font-size:24px;background:#e0a73c;color:#251b08}
+.secondary-btn{padding:13px;background:#f8f1de}
+.small-btn{padding:8px 11px;background:#fff8e8}
+.side-stack{display:grid;gap:16px}
+.panel{padding:16px}
+.panel h2,.panel h3{margin:0 0 10px}
+.deck-preview{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.mini-card{aspect-ratio:.78;border:2px solid var(--edge);border-radius:10px;background:#fff3d0;display:grid;place-items:center;font-size:25px;position:relative}
+.mini-card b{position:absolute;top:-6px;left:-5px;background:#6c49a8;color:#fff;border:2px solid #2b1948;border-radius:50%;width:23px;height:23px;display:grid;place-items:center;font-size:12px}
+.notice{padding:11px;border-radius:12px;background:#fff1b9;border:2px solid #9d741e;font-weight:750}
+.navbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(1200px,100%);height:78px;background:#e7d4a9;border-top:4px solid var(--edge);z-index:50;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:7px 10px}
+.nav-btn{border:0;background:transparent;border-radius:12px;font-weight:900;color:#4a453d;cursor:pointer}
+.nav-btn.active{background:#fff7df;border:2px solid var(--edge);color:#111;box-shadow:0 3px 0 var(--edge)}
+.nav-btn span{display:block;font-size:24px}
+.deck-tabs{display:flex;gap:10px;margin-bottom:14px}
+.deck-tab{flex:1;padding:12px;border:3px solid var(--edge);border-radius:13px;background:#eadbb9;font-weight:1000;cursor:pointer}
+.deck-tab.active{background:#f2c14e}
+.deck-layout{display:grid;grid-template-columns:1fr 1.25fr;gap:16px}
+.deck-slots,.collection{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.game-card{position:relative;min-height:150px;border:3px solid var(--edge);border-radius:14px;background:linear-gradient(#fff8dc,#ead29f);padding:10px 7px 8px;text-align:center;cursor:pointer;box-shadow:0 4px 0 var(--edge)}
+.game-card.selected{outline:5px solid #58a9e6}
+.game-card .cost{position:absolute;left:-7px;top:-8px;width:31px;height:31px;border-radius:50%;background:#7755bb;color:white;border:3px solid #382259;display:grid;place-items:center;font-weight:1000}
+.game-card .icon{font-size:43px;display:block;margin:8px 0 6px}
+.game-card strong{font-size:13px;display:block}
+.game-card small{font-size:10px;font-weight:800;color:#5c574e}
+.avg{margin-top:12px;font-weight:900}
+.modal{position:fixed;inset:0;background:#0e1420dd;z-index:80;display:grid;place-items:center;padding:20px}
+.modal-card{width:min(520px,100%);background:#fff7df;border:4px solid #171b22;border-radius:20px;box-shadow:0 12px 0 #0008;padding:20px;text-align:center}
+.modal-card h2{margin-top:0}
+.room-code{font-size:28px;font-weight:1000;letter-spacing:5px;background:#eee1bf;border:3px dashed #584d36;border-radius:12px;padding:13px;margin:15px 0}
+.modal-actions{display:grid;gap:10px;margin-top:15px}
+.match-shell{border:4px solid var(--edge);border-radius:20px;overflow:hidden;background:#7fac5d;box-shadow:0 10px 0 #0005}
+.match-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:9px 12px;background:#e9d9b5;border-bottom:4px solid var(--edge);font-weight:1000}
+.match-top>div:last-child{text-align:right}
+.timer{font-size:24px;background:#fff7df;border:3px solid var(--edge);border-radius:12px;padding:6px 12px}
+#battlefieldWrap{position:relative}
+#battlefield{display:block;width:100%;height:auto;background:#9abc69;touch-action:none}
+.role-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:8px 15px;border:3px solid var(--edge);border-radius:999px;background:#fff7df;font-weight:1000;pointer-events:none}
+.match-bottom{background:#ded0ad;border-top:4px solid var(--edge);padding:10px}
+.resource-line{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-weight:1000}
+.resource-track{height:18px;flex:1;background:#493665;border:3px solid #251934;border-radius:999px;overflow:hidden}
+.resource-fill{height:100%;background:#a981ee;width:50%}
+.hand{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.hand .game-card{min-height:116px}
+.hand .game-card .icon{font-size:31px}
+.match-actions{display:flex;gap:8px;margin-top:9px}
+.toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%);background:#171b22;color:white;border:2px solid white;border-radius:999px;padding:10px 16px;z-index:120;font-weight:850;opacity:0;pointer-events:none;transition:.2s}
+.toast.show{opacity:1}
+@media(max-width:760px){
+ .home-grid,.deck-layout{grid-template-columns:1fr}
+ .arena-art{min-height:300px}
+ .deck-slots,.collection{grid-template-columns:repeat(4,1fr)}
+ .game-card{min-height:128px}
+ .currency .pill:nth-child(2){display:none}
+ main{padding-left:9px;padding-right:9px}
+}
+@media(max-width:760px){#twoPlayerControls>div{grid-template-columns:1fr!important}}
+@media(max-width:460px){
+ .topbar{height:64px}.avatar{width:39px;height:39px}.profile small{display:none}
+ .pill{font-size:12px;padding:6px 8px}
+ .deck-slots,.collection{grid-template-columns:repeat(2,1fr)}
+ .hand{gap:4px}.hand .game-card{min-height:104px;padding:6px 3px}
+ .hand .game-card strong{font-size:10px}.hand .game-card small{display:none}
+ .match-top{font-size:12px}.timer{font-size:18px}
+}
+</style>
+</head>
+<body>
+<section id="loading" class="screen">
+  <div>
+    <div class="logo">REVERSE TD<small>SIEGE</small></div>
+    <div class="loader"><i></i></div>
+    <p>Forging the battlefield...</p>
+  </div>
+</section>
+
+<div id="app" class="hidden">
+<header class="topbar">
+  <div class="profile">
+    <div class="avatar">🛡️</div>
+    <div><strong>Commander Liviu</strong><small>🏆 <span id="trophies">1200</span></small></div>
+  </div>
+  <div class="currency">
+    <div class="pill">🪙 2,450</div><div class="pill">💎 80</div>
+  </div>
+</header>
+
+<main>
+<section id="battleView" class="view active">
+  <div class="home-grid">
+    <div class="arena-card">
+      <div class="arena-art">
+        <div class="arena-title">Arena 1 · Stonepass</div>
+        <div class="hills"></div>
+        <div class="castle-mark">🏰</div>
+      </div>
+      <div class="home-actions">
+        <button id="onlineBtn" class="big-btn">⚔️ ONLINE 1V1</button>
+        <button id="friendBtn" class="secondary-btn">🔗 PLAY AGAINST A FRIEND</button>
+        <button id="localBtn" class="secondary-btn">🎮 LOCAL 2-PLAYER DUEL</button>
+      </div>
+    </div>
+    <div class="side-stack">
+      <div class="panel">
+        <h2>Battle Deck</h2>
+        <div id="homeDeck" class="deck-preview"></div>
+      </div>
+      <div class="panel">
+        <h3>How this prototype works</h3>
+        <div class="notice">Play locally on one screen or create a private online room and invite a friend on another phone.</div>
+      </div>
+      <div class="panel">
+        <h3>Season Road</h3>
+        <p><b>1200 / 1400 trophies</b></p>
+        <div style="height:13px;background:#d6c49d;border:2px solid #463e31;border-radius:999px;overflow:hidden"><div style="width:62%;height:100%;background:#e3ad3c"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="deckView" class="view">
+  <div class="panel">
+    <h2>Deck Builder</h2>
+    <div class="deck-tabs">
+      <button class="deck-tab active" data-kind="troop">⚔️ Troop Deck</button>
+      <button class="deck-tab" data-kind="tower">🏹 Tower Deck</button>
+    </div>
+    <div class="deck-layout">
+      <div>
+        <h3>Equipped cards · 8</h3>
+        <div id="deckSlots" class="deck-slots"></div>
+        <div class="avg">Average Supply: <span id="averageCost">0</span></div>
+      </div>
+      <div>
+        <h3>Collection</h3>
+        <p>Select a deck card, then select a collection card to replace it.</p>
+        <div id="collection" class="collection"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="profileView" class="view">
+ <div class="panel">
+  <h2>Commander Profile</h2>
+  <p><b>Commander Liviu</b> · Arena 1</p>
+  <p>Wins: 0 · Losses: 0 · Win rate: 0%</p>
+  <div class="notice">Profiles, accounts, rankings and persistent statistics become functional when the Firebase backend is connected.</div>
+ </div>
+</section>
+
+<section id="matchView" class="view">
+  <div class="match-shell">
+    <div class="match-top">
+      <div><span id="leftName">Attacker</span><br><span id="attackerSupplyTop">Supply 5.0</span></div>
+      <div class="timer" id="timer">3:00</div>
+      <div><span id="rightName">Defender</span><br>🏰 <span id="castleHp">500</span> HP</div>
+    </div>
+    <div id="battlefieldWrap">
+      <canvas id="battlefield" width="1152" height="620"></canvas>
+      <div class="role-banner" id="roleBanner">You are the Attacker</div>
+    </div>
+    <div class="match-bottom">
+      <div id="soloControls">
+        <div class="resource-line"><span>SUPPLY</span><div class="resource-track"><div id="resourceFill" class="resource-fill"></div></div><span id="resourceText">5.0 / 10</span></div>
+        <div id="hand" class="hand"></div>
+      </div>
+      <div id="twoPlayerControls" class="hidden">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="panel" style="padding:10px;background:#f8e5df">
+            <h3 style="margin:0 0 7px">⚔️ Friend 1 · Attacker</h3>
+            <div class="resource-line"><span>SUPPLY</span><div class="resource-track"><div id="attackerResourceFill" class="resource-fill"></div></div><span id="attackerResourceText">5.0</span></div>
+            <div id="attackerHand" class="hand"></div>
+          </div>
+          <div class="panel" style="padding:10px;background:#e1edf9">
+            <h3 style="margin:0 0 7px">🏹 Friend 2 · Defender</h3>
+            <div class="resource-line"><span>SUPPLY</span><div class="resource-track"><div id="defenderResourceFill" class="resource-fill"></div></div><span id="defenderResourceText">5.0</span></div>
+            <div id="defenderHand" class="hand"></div>
+          </div>
+        </div>
+      </div>
+      <div class="match-actions"><button id="leaveMatch" class="small-btn">Leave match</button><button id="swapRole" class="small-btn">Swap role & restart</button></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<nav class="navbar">
+ <button class="nav-btn active" data-view="battleView"><span>⚔️</span>Battle</button>
+ <button class="nav-btn" data-view="deckView"><span>🃏</span>Decks</button>
+ <button class="nav-btn" data-view="profileView"><span>👤</span>Profile</button>
+</nav>
+</div>
+
+<div id="choiceModal" class="modal hidden">
+ <div class="modal-card">
+  <h2>Local 2-Player Duel</h2>
+  <p>Friend 1 controls the attacker. Friend 2 controls the defender on the same screen.</p>
+  <div class="notice">Attacker: tap troop cards. Defender: tap a tower card, then tap a glowing placement slot.</div>
+  <div class="modal-actions">
+   <button id="startLocalTwoPlayer" class="big-btn">🎮 Start Duel</button>
+   <button id="closeChoice" class="secondary-btn">Cancel</button>
+  </div>
+ </div>
+</div>
+
+<div id="roomModal" class="modal hidden">
+ <div class="modal-card">
+  <h2>Private battle room</h2><p>Share the invitation link. The match starts when both players are connected and ready.</p>
+  <div class="room-code" id="roomCode">ABCD12</div>
+  <div id="roomUrl" class="notice" style="word-break:break-all"></div>
+  <div class="modal-actions">
+   <button id="copyRoom" class="big-btn">Copy invitation link</button>
+   <button id="readyRoom" class="secondary-btn">Ready</button>
+   <div id="roomStatus" class="notice">Connecting…</div>
+   <button id="closeRoom" class="secondary-btn">Leave room</button>
+  </div>
+ </div>
+</div>
+
+<div id="searchModal" class="modal hidden">
+ <div class="modal-card">
+  <h2>Searching for opponent...</h2><p id="searchText">Scanning the Stonepass arena.</p>
+  <div class="loader" style="width:100%;margin:20px 0"><i style="animation-duration:2.4s"></i></div>
+  <button id="cancelSearch" class="secondary-btn">Cancel</button>
+ </div>
+</div>
+
+<div id="resultModal" class="modal hidden">
+ <div class="modal-card">
+  <h2 id="resultTitle">Victory</h2><p id="resultText"></p>
+  <div class="modal-actions"><button id="rematchBtn" class="big-btn">Rematch</button><button id="resultHome" class="secondary-btn">Return home</button></div>
+ </div>
+</div>
+<div id="toast" class="toast">Done</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
+
+</body>
+</html>
